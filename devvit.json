@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "hive-mind-fourtix",
+  "name": "tryhivemind",
   "post": {
     "dir": "dist/client",
     "entrypoints": {
@@ -31,5 +31,8 @@
   "scripts": {
     "build": "npm run build",
     "dev": "npm run build"
+  },
+  "dev": {
+    "subreddit": "tryhivemind_dev"
   }
 }
