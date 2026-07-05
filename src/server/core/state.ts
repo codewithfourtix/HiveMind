@@ -157,6 +157,18 @@ export async function submitAnswer(
   userId: string,
   raw: string
 ): Promise<{ result: GameResult; board: BoardEntry[]; streak: StreakRecord }> {
+  // Idempotent: one answer per player per post. If they already played, return
+  // their live standing without mutating anything or re-bumping the streak.
+  const prior = await userRecordGet(redis, postId, userId);
+  if (prior) {
+    const answers = await answersGet(redis, postId);
+    return {
+      result: computeResult(answers, prior.clusterKey),
+      board: buildBoard(answers, prior.clusterKey),
+      streak: await streakGet(redis, userId),
+    };
+  }
+
   const { clusterKey, label } = await answersAdd(redis, postId, raw);
   await userRecordSet(redis, postId, userId, { clusterKey, answerLabel: label });
   const answers = await answersGet(redis, postId);
