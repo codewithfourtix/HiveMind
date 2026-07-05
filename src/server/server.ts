@@ -2,13 +2,14 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { once } from 'node:events';
 import { context, reddit, redis } from '@devvit/web/server';
 import type { InitResponse, SubmitResponse } from '../shared/types/game';
-import { getDailyPrompt } from './core/prompts';
+import { getDailyPrompt, samplesForPrompt } from './core/prompts';
 import {
   buildBoard,
   computeResult,
   loadForUser,
   roundConfigGetOrCreate,
   roundConfigNew,
+  seedAnswers,
   submitAnswer,
   totalPlayers,
 } from './core/state';
@@ -16,6 +17,7 @@ import {
 const API_INIT = '/api/init';
 const API_SUBMIT = '/api/submit';
 const MENU_POST_CREATE = '/internal/menu/post-create';
+const MENU_SEED = '/internal/menu/seed';
 const ON_APP_INSTALL = '/internal/on-app-install';
 
 export async function serverOnRequest(req: IncomingMessage, rsp: ServerResponse): Promise<void> {
@@ -28,6 +30,8 @@ export async function serverOnRequest(req: IncomingMessage, rsp: ServerResponse)
         return writeJSON(200, await onSubmit(req), rsp);
       case MENU_POST_CREATE:
         return writeJSON(200, await onMenuNewPost(), rsp);
+      case MENU_SEED:
+        return writeJSON(200, await onSeed(), rsp);
       case ON_APP_INSTALL:
         return writeJSON(200, await onAppInstall(), rsp);
       default:
@@ -95,6 +99,24 @@ async function onMenuNewPost(): Promise<{
   return {
     showToast: { text: 'New Hive Mind round posted!', appearance: 'success' },
     navigateTo: post.url,
+  };
+}
+
+async function onSeed(): Promise<{
+  showToast: { text: string; appearance: 'success' | 'neutral' };
+}> {
+  const postId = context.postId;
+  if (!postId) {
+    return { showToast: { text: 'Open a Hive Mind post, then seed it.', appearance: 'neutral' } };
+  }
+  const config = await roundConfigGetOrCreate(redis, postId);
+  const samples = samplesForPrompt(config.prompt);
+  if (samples.length === 0) {
+    return { showToast: { text: 'No samples for this prompt.', appearance: 'neutral' } };
+  }
+  const total = await seedAnswers(redis, postId, samples);
+  return {
+    showToast: { text: `Seeded ${samples.length} answers — ${total} total. Reload the post.`, appearance: 'success' },
   };
 }
 

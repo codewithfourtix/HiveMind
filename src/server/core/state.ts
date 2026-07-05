@@ -85,6 +85,28 @@ export function totalPlayers(answers: AnswersMap): number {
   return Object.values(answers).reduce((sum, c) => sum + c.count, 0);
 }
 
+/**
+ * Dev/demo helper: inject a batch of raw answers straight into a post's board,
+ * running each through the same clustering as real submissions (no user records).
+ * Returns the new total. Used by the mod-only "Seed demo answers" menu action.
+ */
+export async function seedAnswers(
+  redis: RedisLike,
+  postId: string,
+  raws: string[]
+): Promise<number> {
+  const answers = await answersGet(redis, postId);
+  for (const raw of raws) {
+    const key = matchCluster(canonicalize(raw), Object.keys(answers));
+    const label = raw.trim().replace(/\s+/g, ' ');
+    const existing = answers[key];
+    if (existing) existing.count += 1;
+    else answers[key] = { label: label || key, count: 1 };
+  }
+  await redis.set(kAnswers(postId), JSON.stringify(answers));
+  return totalPlayers(answers);
+}
+
 export function computeResult(answers: AnswersMap, clusterKey: string): GameResult {
   const sorted = Object.entries(answers).sort((a, b) => b[1].count - a[1].count);
   const total = totalPlayers(answers);
