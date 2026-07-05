@@ -17,6 +17,7 @@ import {
 const API_INIT = '/api/init';
 const API_SUBMIT = '/api/submit';
 const MENU_POST_CREATE = '/internal/menu/post-create';
+const MENU_SEEDED_ROUND = '/internal/menu/seeded-round';
 const MENU_SEED = '/internal/menu/seed';
 const ON_APP_INSTALL = '/internal/on-app-install';
 
@@ -30,6 +31,8 @@ export async function serverOnRequest(req: IncomingMessage, rsp: ServerResponse)
         return writeJSON(200, await onSubmit(req), rsp);
       case MENU_POST_CREATE:
         return writeJSON(200, await onMenuNewPost(), rsp);
+      case MENU_SEEDED_ROUND:
+        return writeJSON(200, await onSeededRound(), rsp);
       case MENU_SEED:
         return writeJSON(200, await onSeed(), rsp);
       case ON_APP_INSTALL:
@@ -98,6 +101,20 @@ async function onMenuNewPost(): Promise<{
   await roundConfigNew(redis, post.id, prompt);
   return {
     showToast: { text: 'New Hive Mind round posted!', appearance: 'success' },
+    navigateTo: post.url,
+  };
+}
+
+async function onSeededRound(): Promise<{
+  showToast: { text: string; appearance: 'success' | 'neutral' };
+  navigateTo: string;
+}> {
+  const prompt = getDailyPrompt();
+  const post = await reddit.submitCustomPost({ title: `🧠 Hive Mind — ${prompt.text}` });
+  await roundConfigNew(redis, post.id, prompt);
+  const total = await seedAnswers(redis, post.id, prompt.samples);
+  return {
+    showToast: { text: `Seeded demo round posted (${total} answers)!`, appearance: 'success' },
     navigateTo: post.url,
   };
 }

@@ -24,6 +24,13 @@
         "endpoint": "/internal/menu/post-create"
       },
       {
+        "label": "Hive Mind: New demo round (seeded)",
+        "description": "Post today's prompt pre-filled with sample answers",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/seeded-round"
+      },
+      {
         "label": "Hive Mind: Seed demo answers (dev)",
         "description": "Populate this post with sample answers",
         "location": "post",
