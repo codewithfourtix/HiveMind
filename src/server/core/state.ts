@@ -2,10 +2,16 @@
 // single JSON blob and read-modify-write it. Daily-post traffic is low enough
 // that this is simple and safe; there is no external database.
 
-import type { RedisClient } from '@devvit/redis';
 import type { BoardEntry, GameResult } from '../../shared/types/game';
 import { canonicalize, matchCluster } from './cluster';
 import { getDailyPrompt, type Prompt } from './prompts';
+
+// Minimal structural view of the Devvit Redis client — just what state needs.
+// Keeps this module testable with a plain in-memory mock.
+export type RedisLike = {
+  get(key: string): Promise<string | null | undefined>;
+  set(key: string, value: string): Promise<unknown>;
+};
 
 export type RoundConfig = { prompt: string; emoji: string; date: string };
 export type Cluster = { label: string; count: number };
@@ -25,7 +31,7 @@ export const todayUTC = (d = new Date()): string => d.toISOString().slice(0, 10)
 // ---- round config ---------------------------------------------------------
 
 export async function roundConfigMaybeGet(
-  redis: RedisClient,
+  redis: RedisLike,
   postId: string
 ): Promise<RoundConfig | undefined> {
   const raw = await redis.get(kConfig(postId));
@@ -33,7 +39,7 @@ export async function roundConfigMaybeGet(
 }
 
 export async function roundConfigNew(
-  redis: RedisClient,
+  redis: RedisLike,
   postId: string,
   prompt: Prompt = getDailyPrompt()
 ): Promise<RoundConfig> {
@@ -43,7 +49,7 @@ export async function roundConfigNew(
 }
 
 export async function roundConfigGetOrCreate(
-  redis: RedisClient,
+  redis: RedisLike,
   postId: string
 ): Promise<RoundConfig> {
   return (await roundConfigMaybeGet(redis, postId)) ?? (await roundConfigNew(redis, postId));
@@ -51,14 +57,14 @@ export async function roundConfigGetOrCreate(
 
 // ---- answers --------------------------------------------------------------
 
-async function answersGet(redis: RedisClient, postId: string): Promise<AnswersMap> {
+async function answersGet(redis: RedisLike, postId: string): Promise<AnswersMap> {
   const raw = await redis.get(kAnswers(postId));
   return raw ? (JSON.parse(raw) as AnswersMap) : {};
 }
 
 /** Record a raw answer; returns the cluster key it landed in. */
 async function answersAdd(
-  redis: RedisClient,
+  redis: RedisLike,
   postId: string,
   raw: string
 ): Promise<{ clusterKey: string; label: string }> {
@@ -107,7 +113,7 @@ export function buildBoard(answers: AnswersMap, myKey?: string): BoardEntry[] {
 // ---- per-user record ------------------------------------------------------
 
 export async function userRecordGet(
-  redis: RedisClient,
+  redis: RedisLike,
   postId: string,
   userId: string
 ): Promise<UserRecord | undefined> {
@@ -116,7 +122,7 @@ export async function userRecordGet(
 }
 
 async function userRecordSet(
-  redis: RedisClient,
+  redis: RedisLike,
   postId: string,
   userId: string,
   record: UserRecord
@@ -126,13 +132,13 @@ async function userRecordSet(
 
 // ---- streaks & score ------------------------------------------------------
 
-export async function streakGet(redis: RedisClient, userId: string): Promise<StreakRecord> {
+export async function streakGet(redis: RedisLike, userId: string): Promise<StreakRecord> {
   const raw = await redis.get(kStreak(userId));
   return raw ? (JSON.parse(raw) as StreakRecord) : { count: 0, lastDate: '', score: 0 };
 }
 
 async function streakBump(
-  redis: RedisClient,
+  redis: RedisLike,
   userId: string,
   addScore: number
 ): Promise<StreakRecord> {
@@ -152,7 +158,7 @@ async function streakBump(
 // ---- high-level: submit an answer -----------------------------------------
 
 export async function submitAnswer(
-  redis: RedisClient,
+  redis: RedisLike,
   postId: string,
   userId: string,
   raw: string
@@ -178,7 +184,7 @@ export async function submitAnswer(
 }
 
 export async function loadForUser(
-  redis: RedisClient,
+  redis: RedisLike,
   postId: string,
   userId: string | undefined
 ): Promise<{
