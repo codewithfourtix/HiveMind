@@ -1,0 +1,76 @@
+/* Hive Mind — component styles and animations layered on top of Tailwind. */
+
+.hm-pop {
+  animation: hm-pop 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+}
+@keyframes hm-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.hm-fade {
+  animation: hm-fade 0.5s ease both;
+}
+@keyframes hm-fade {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Honeycomb answer bar */
+.hm-bar {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 183, 0, 0.15);
+}
+.hm-bar-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(255, 183, 0, 0.35), rgba(255, 138, 0, 0.22));
+  transition: width 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hm-bar-fill.mine {
+  background: linear-gradient(90deg, rgba(255, 199, 0, 0.85), rgba(255, 138, 0, 0.6));
+}
+
+/* Big hero percentage */
+.hm-hero-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  text-shadow: 0 0 32px rgba(255, 183, 0, 0.45);
+}
+
+.hm-flame {
+  filter: drop-shadow(0 0 6px rgba(255, 140, 0, 0.6));
+}
+
+.hm-shake {
+  animation: hm-shake 0.4s ease;
+}
+@keyframes hm-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
